@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* Token dari docs/DESIGN.md */
+@theme {
+    --font-sans: 'Inter Variable', system-ui, sans-serif;
+
+    --color-navy-900: #002147;
+    --color-navy-700: #0e3c73;
+    --color-primary: #1d5fa6;
+    --color-primary-mid: #2c74c2;
+    --color-primary-soft: #e8f1fb;
+    --color-sky: #54a7ee;
+    --color-sky-soft: #bbd6f2;
+    --color-gold: #ffb606;
+    --color-bg: #f3f7fc;
+    --color-surface: #ffffff;
+    --color-line: #e3e8ef;
+    --color-divider: #eef1f5;
+    --color-ink: #1b2733;
+    --color-ink-2: #2d3a4b;
+    --color-muted: #5b6b7b;
+
+    --color-lunas: #14703f;
+    --color-lunas-bg: #e6f4ec;
+    --color-hampir: #8a4b00;
+    --color-hampir-bg: #fff3d6;
+    --color-tunggak: #b42318;
+    --color-tunggak-bg: #fdecea;
+    --color-batal: #5b6b7b;
+    --color-batal-bg: #eef1f5;
+
+    --color-cat-spp: #1d5fa6;
+    --color-cat-daftar-ulang: #c28400;
+    --color-cat-jemputan: #12856f;
+
+    --radius-card: 20px;
+    --radius-hero: 24px;
+    --shadow-card: 0 4px 18px rgba(0, 33, 71, 0.07);
+}

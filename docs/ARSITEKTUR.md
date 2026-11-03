@@ -1,6 +1,6 @@
 # Arsitektur SIAPA
 
-> Database sudah diputuskan: **Supabase (PostgreSQL)**. Framework aplikasi (Laravel) masih usulan, ganti sebelum coding dimulai bila berbeda.
+> Sudah diputuskan: **Laravel 13 (PHP 8.4)** dengan database **Supabase (PostgreSQL)**. Project sudah dibuat di root repo.
 
 ## 1. Stack
 
@@ -10,7 +10,7 @@
 | Database | Supabase (PostgreSQL terkelola, backup otomatis) |
 | File bukti QRIS | Supabase Storage, bucket privat |
 | Tampilan | Blade + Tailwind CSS |
-| Auth | Session login bawaan Laravel, role di tabel `users` |
+| Auth | Session login bawaan Laravel (sesi disimpan di file, bukan database), role di tabel `users` |
 | Jadwal alert | Laravel Scheduler (cron harian) |
 | Hosting | Satu server (VPS/shared hosting) |
 
@@ -24,7 +24,7 @@ Browser
   -> Controller
   -> Service (aturan bisnis: tagihan, pembayaran, alert)
   -> Model (Eloquent)
-  -> MySQL
+  -> PostgreSQL (Supabase)
 ```
 
 Aturan bisnis (tarif, jatuh tempo, status lunas) hanya ada di Service, tidak di Controller atau view.
@@ -80,9 +80,10 @@ Siswa hanya boleh membaca baris dengan `nis` miliknya. Pengecekan dilakukan di S
 
 ## 6. Alert
 
-Scheduler berjalan harian:
-- Mulai beberapa hari sebelum tanggal 10 sampai lunas: tandai tagihan SPP dan jemputan belum lunas sebagai `peringatan`.
-- Menjelang 10 Desember: tandai tagihan daftar ulang belum lunas.
+Peringatan **dihitung saat dibaca** dari tanggal hari ini (`AlertService`), bukan ditandai oleh job harian. Tidak ada status yang basi dan tidak perlu Laravel Scheduler. Jendelanya ada di `config/siapa.php`:
+- SPP dan jemputan: 5 hari sebelum tanggal 10 sampai lunas (tetap tampil bila lewat).
+- Daftar ulang: 30 hari sebelum 10 Desember sampai lunas.
+- Status tampil tiap tagihan: `lunas`, `menunggu_verifikasi`, `menunggak` (lewat jatuh tempo), `hampir_jatuh_tempo`, `belum_bayar`.
 - Alert tampil sebagai banner di dashboard Keuangan dan Siswa. WhatsApp tidak termasuk sampai klien memutuskan.
 
 ## 7. Keamanan
@@ -119,6 +120,22 @@ Sistem ini memegang data uang dan data anak, jadi keamanan adalah syarat rilis.
 - Perbarui dependensi secara berkala dan pantau log login gagal.
 - Kumpulkan data seperlunya. Data anak termasuk data pribadi yang dilindungi UU PDP.
 
-## 8. Diagram sumber
+## 8. Endpoint backend
+
+Semua di balik login (sesi) dan middleware ganti password awal. Jawaban berupa JSON, siap dipakai tampilan Blade atau JS. Aturan bisnis ada di `app/Services`, controller hanya memvalidasi.
+
+| Role | Endpoint |
+|---|---|
+| Semua | `GET /login`, `POST /login` (maks 5 per menit), `POST /logout`, `GET\|POST /ganti-password` |
+| Admin | `GET\|POST /admin/pengguna`, `PATCH /admin/pengguna/{id}`, `GET\|POST /admin/siswa`, `PATCH /admin/siswa/{nis}`, `POST /admin/siswa/{nis}/akun` |
+| Keuangan | `POST /keuangan/tagihan/spp`, `.../daftar-ulang`, `.../jemputan`, `PATCH /keuangan/tagihan/{id}/nominal` |
+| Keuangan | `GET /keuangan/siswa/{nis}`, `POST /keuangan/tagihan/{id}/pembayaran`, `POST /keuangan/pembayaran/{id}/verifikasi`, `POST /keuangan/pembayaran/{id}/batal`, `GET /keuangan/peringatan` |
+| Siswa | `GET /siswa/tagihan`, `/siswa/riwayat`, `/siswa/peringatan` (hanya data sendiri) |
+| Yayasan, Keuangan | `GET /laporan/rekap`, `/laporan/tunggakan`, `/laporan/pembayaran` (filter, `?format=csv`), `/laporan/siswa/{nis}` |
+| Yayasan | `GET /yayasan/pembatalan` (peringatan pembayaran yang dibatalkan beserta alasannya) |
+
+Tambahan pada model data: `pembayaran.alasan` (alasan batal atau tolak) dan `users.aktif`, `users.harus_ganti_password`. Bukti QRIS disimpan lewat disk di `config/siapa.php` (`SIAPA_DISK_BUKTI`), bawaan `local` (privat). Ganti ke disk Supabase Storage (S3) saat produksi.
+
+## 9. Diagram sumber
 
 Use case, activity diagram login dan pembayaran, serta sequence diagram ada di Google Drive proyek. Dokumen ini belum memuat detail dari sequence diagram.
