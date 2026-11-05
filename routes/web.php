@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('ganti.password')->group(function () {
         // Admin: pengguna, siswa, akun siswa. Tidak bisa mencatat pembayaran.
         Route::middleware('role:admin')->prefix('admin')->group(function () {
+            Route::get('/', fn () => redirect('/admin/pengguna'));
             Route::get('pengguna', [PenggunaController::class, 'index']);
             Route::post('pengguna', [PenggunaController::class, 'store']);
             Route::patch('pengguna/{user}', [PenggunaController::class, 'update']);

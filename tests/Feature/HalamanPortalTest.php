@@ -13,6 +13,13 @@ class HalamanPortalTest extends TestCase
 {
     use RefreshDatabase, SiapkanData;
 
+    public function test_alamat_admin_mengarah_ke_pengguna_dengan_hak_akses_yang_sama(): void
+    {
+        $this->get('/admin')->assertRedirect('/login');
+        $this->actingAs($this->staf(Role::Admin))->get('/admin')->assertRedirect('/admin/pengguna');
+        $this->actingAs($this->staf(Role::Siswa))->get('/admin')->assertForbidden();
+    }
+
     public function test_halaman_role_lain_menampilkan_html_dan_logo(): void
     {
         $this->withoutVite();

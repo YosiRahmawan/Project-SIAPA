@@ -45,7 +45,7 @@ Catatan: `done` pada Fase 1 sampai 6 berarti **backend** (service, route, tes) s
 | ID | Task | Kode | Branch | Status |
 |---|---|---|---|---|
 | T3.1 | Generate tagihan SPP bulanan per kelas | F6 | feature/keuangan | done |
-| T3.2 | Tagihan daftar ulang kelas 2 dan 6 | F6 | feature/keuangan | done |
+| T3.2 | Tagihan daftar ulang kelas 2 sampai 6 | F6 | feature/keuangan | done |
 | T3.3 | Input nominal dan tagihan jemputan manual | F9 | feature/keuangan | done |
 | T3.4 | Cari siswa by NIS, tampil tagihan | F7 | feature/keuangan | done |
 | T3.5 | Catat pembayaran manual | F7 | feature/keuangan | done |

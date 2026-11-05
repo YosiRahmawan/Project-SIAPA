@@ -141,3 +141,17 @@ document.querySelectorAll('.cancel-payment').forEach(button => button.addEventLi
     if (!window.confirm('Batalkan pembayaran? Penerimaan dan saldo tagihan akan dihitung ulang.')) return;
     submit(button.closest('tr'), async () => { await api(`/keuangan/pembayaran/${button.dataset.id}/batal`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({alasan:reason})}); window.location.reload(); });
 }));
+
+document.querySelectorAll('.edit-transport').forEach(button => button.addEventListener('click', () => {
+    const value = window.prompt('Nominal jemputan baru (rupiah penuh, tanpa titik):', button.dataset.amount);
+    if (value === null) return;
+    const amount = Number(value);
+    if (!/^\d+$/.test(value.trim()) || !Number.isSafeInteger(amount) || amount < 1) {
+        feedback('Masukkan nominal rupiah bulat lebih dari nol.', true);
+        return;
+    }
+    submit(button.closest('tr'), async () => {
+        await api(`/keuangan/tagihan/${button.dataset.id}/nominal`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({nominal:amount})});
+        window.location.reload();
+    });
+}));

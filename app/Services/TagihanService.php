@@ -20,7 +20,7 @@ class TagihanService
         return $this->generate(JenisTagihan::Spp, $periode, $bulan->day((int) config('siapa.tanggal_jatuh_tempo')));
     }
 
-    /** Buat tagihan daftar ulang tahun $tahun. Hanya kelas yang punya tarif (kelas 2 dan 6). */
+    /** Buat tagihan daftar ulang tahun $tahun. Hanya kelas yang punya tarif (kelas 2 sampai 6). */
     public function generateDaftarUlang(int $tahun): int
     {
         $bulan = (int) config('siapa.bulan_daftar_ulang');

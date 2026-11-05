@@ -25,7 +25,7 @@ Menggantikan pencatatan pembayaran manual dengan satu sistem yang mencatat SPP, 
 | 2 | Rp550.000 |
 | 3 sampai 6 | Rp540.000 |
 
-**Daftar ulang:** kelas 2 Rp3.500.000, kelas 6 Rp3.200.000.
+**Daftar ulang:** kelas 2-5 Rp3.500.000, kelas 6 Rp3.200.000.
 
 **Jemputan:** nominal diinput manual oleh Petugas Keuangan.
 
@@ -143,7 +143,7 @@ flowchart TD
 
 ## 7. Pertanyaan terbuka untuk klien
 
-1. Daftar ulang hanya kelas 2 dan 6, atau kelas lain juga?
+1. Daftar ulang sesuai catatan sekolah: kelas 2-5 Rp3.500.000 dan kelas 6 Rp3.200.000.
 2. Jemputan: nominal tetap atau berbeda per siswa/jarak? Siapa yang menentukan?
 3. Lewat tanggal 10: ada denda atau hanya peringatan?
 4. Apakah sekolah punya QRIS sendiri?

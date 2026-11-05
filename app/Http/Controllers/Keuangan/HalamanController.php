@@ -26,7 +26,7 @@ class HalamanController extends Controller
         $laporan = app(LaporanService::class);
         $rekap = $laporan->rekap($periode);
         $pembayaran = Pembayaran::with('tagihan.siswa')->latest('tanggal')->latest('id');
-        $tagihan = Tagihan::with('siswa')->withSum(['pembayaran as dibayar_total' => fn ($q) => $q->where('status', StatusPembayaran::Diterima)], 'jumlah')
+        $tagihan = Tagihan::with('siswa')->withExists('pembayaran')->withSum(['pembayaran as dibayar_total' => fn ($q) => $q->where('status', StatusPembayaran::Diterima)], 'jumlah')
             ->when($filter['q'] ?? null, fn ($q, $v) => $q->whereHas('siswa', fn ($s) => $s->where(fn ($s) => $s->where('nama', 'like', "%{$v}%")->orWhere('nis', 'like', "%{$v}%"))))
             ->when($filter['kelas'] ?? null, fn ($q, $v) => $q->whereHas('siswa', fn ($s) => $s->where('kelas', $v)))
             ->when($filter['jenis'] ?? null, fn ($q, $v) => $q->where('jenis', $v));

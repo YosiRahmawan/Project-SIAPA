@@ -66,13 +66,17 @@ class LaporanService
     {
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['tanggal', 'nis', 'nama', 'jenis', 'periode', 'metode', 'jumlah', 'status', 'alasan']);
-            foreach ($query->lazyById(500, 'pembayaran.id', 'id') as $p) {
+            fwrite($out, "\xEF\xBB\xBF"); // Excel opens Indonesian text as UTF-8.
+            fputcsv($out, ['Tanggal', 'NIS', 'Nama Siswa', 'Kelas', 'Jenis Tagihan', 'Periode', 'Metode Pembayaran', 'Jumlah (Rp)', 'Status', 'Keterangan'], ',', '"', '');
+            $jenis = ['spp' => 'SPP', 'daftar_ulang' => 'Daftar ulang', 'jemputan' => 'Jemputan'];
+            $status = ['diterima' => 'Diterima', 'menunggu' => 'Menunggu verifikasi', 'ditolak' => 'Ditolak', 'dibatalkan' => 'Dibatalkan'];
+            foreach ($query->reorder()->lazyById(500, 'pembayaran.id', 'id') as $p) {
                 fputcsv($out, [
-                    $p->tanggal->toDateString(), $p->tagihan->nis, $p->tagihan->siswa->nama,
-                    $p->tagihan->jenis->value, $p->tagihan->periode, $p->metode->value,
-                    $p->jumlah, $p->status->value, self::aman($p->alasan),
-                ]);
+                    $p->tanggal->toDateString(), $p->tagihan->nis, self::aman($p->tagihan->siswa->nama),
+                    $p->tagihan->siswa->kelas, $jenis[$p->tagihan->jenis->value], $p->tagihan->periode,
+                    $p->metode->value === 'manual' ? 'Tunai' : 'QRIS',
+                    $p->jumlah, $status[$p->status->value], self::aman($p->alasan),
+                ], ',', '"', '');
             }
             fclose($out);
         }, 'pembayaran.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);

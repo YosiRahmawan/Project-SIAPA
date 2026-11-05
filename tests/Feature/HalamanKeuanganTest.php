@@ -15,6 +15,18 @@ class HalamanKeuanganTest extends TestCase
 {
     use RefreshDatabase, SiapkanData;
 
+    public function test_ubah_nominal_jemputan_hanya_ditawarkan_sebelum_ada_pembayaran(): void
+    {
+        $this->withoutVite();
+        $petugas = $this->staf(Role::Keuangan);
+        $tagihan = $this->tagihan(['jenis' => \App\Enums\JenisTagihan::Jemputan, 'nominal' => 100000]);
+        $this->actingAs($petugas)->get('/keuangan/halaman/tagihan')->assertOk()->assertSee('Ubah nominal');
+        $this->patchJson('/keuangan/tagihan/'.$tagihan->id.'/nominal', ['nominal' => 150000])->assertOk()->assertJsonPath('nominal', 150000);
+        app(PembayaranService::class)->catatManual($tagihan->fresh(), 1000, $petugas);
+        $this->get('/keuangan/halaman/tagihan')->assertOk()->assertDontSee('Ubah nominal');
+        $this->patchJson('/keuangan/tagihan/'.$tagihan->id.'/nominal', ['nominal' => 200000])->assertUnprocessable();
+    }
+
     public function test_semua_halaman_keuangan_dapat_dibuka_dengan_data_kosong(): void
     {
         $this->actingAs($this->staf(Role::Keuangan));

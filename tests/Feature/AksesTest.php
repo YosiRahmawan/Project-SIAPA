@@ -47,6 +47,23 @@ class AksesTest extends TestCase
         return array_map(fn (Role $r) => [$r], Role::cases());
     }
 
+    public function test_login_tidak_kembali_ke_alamat_role_lain_yang_tersimpan(): void
+    {
+        User::factory()->role(Role::Keuangan)->create(['username' => 'uji', 'password' => 'Rahasia123']);
+        $this->get('/admin/pengguna')->assertRedirect('/login');
+        $this->post('/login', ['username' => 'uji', 'password' => 'Rahasia123'])->assertRedirect('/keuangan');
+        $this->assertFalse(session()->has('url.intended'));
+    }
+
+    public function test_halaman_403_memberi_jalan_kembali_dan_ganti_akun(): void
+    {
+        $this->withoutVite();
+        $this->actingAs($this->staf(Role::Keuangan))->get('/admin/pengguna')
+            ->assertForbidden()->assertSee('Petugas Keuangan')->assertSee('Keluar dan ganti akun')->assertSee('href="/keuangan"', false);
+        $this->post('/logout')->assertRedirect('/login');
+        $this->assertGuest();
+    }
+
     public function test_login_gagal_dicatat_dan_akun_nonaktif_ditolak(): void
     {
         User::factory()->create(['username' => 'uji', 'password' => 'Rahasia123']);
