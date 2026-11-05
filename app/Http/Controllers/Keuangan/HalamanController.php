@@ -8,6 +8,7 @@ use App\Models\Pembayaran;
 use App\Models\Siswa;
 use App\Models\Tagihan;
 use App\Services\LaporanService;
+use App\Services\AlertService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,12 +22,21 @@ class HalamanController extends Controller
             'jenis' => 'nullable|in:spp,daftar_ulang,jemputan', 'periode' => 'nullable|date_format:Y-m',
             'status' => 'nullable|in:belum,lunas,menunggu,diterima,ditolak,dibatalkan',
             'pilih' => 'nullable|integer', 'nis' => 'nullable|string|max:30',
+            'peringatan' => 'nullable|in:dekat',
+        ], [
+            'periode.date_format' => 'Periode harus berformat YYYY-MM, misalnya 2026-11.',
+            'kelas.integer' => 'Kelas harus berupa angka 1 sampai 6.',
+            'kelas.between' => 'Pilih kelas 1 sampai 6.',
+            'jenis.in' => 'Jenis tagihan yang dipilih tidak valid.',
+            'status.in' => 'Status filter yang dipilih tidak valid.',
+            'q.max' => 'Pencarian maksimal 100 karakter.',
         ]);
         $periode = $filter['periode'] ?? today()->format('Y-m');
         $laporan = app(LaporanService::class);
         $rekap = $laporan->rekap($periode);
         $pembayaran = Pembayaran::with('tagihan.siswa')->latest('tanggal')->latest('id');
-        $tagihan = Tagihan::with('siswa')->withExists('pembayaran')->withSum(['pembayaran as dibayar_total' => fn ($q) => $q->where('status', StatusPembayaran::Diterima)], 'jumlah')
+        $dekat = app(AlertService::class)->peringatan(today())->whereDate('jatuh_tempo', '>=', today());
+        $tagihan = Tagihan::with('siswa')->withExists(['pembayaran', 'pembayaran as ada_menunggu' => fn ($q) => $q->where('status', StatusPembayaran::Menunggu)])->withSum(['pembayaran as dibayar_total' => fn ($q) => $q->where('status', StatusPembayaran::Diterima)], 'jumlah')
             ->when($filter['q'] ?? null, fn ($q, $v) => $q->whereHas('siswa', fn ($s) => $s->where(fn ($s) => $s->where('nama', 'like', "%{$v}%")->orWhere('nis', 'like', "%{$v}%"))))
             ->when($filter['kelas'] ?? null, fn ($q, $v) => $q->whereHas('siswa', fn ($s) => $s->where('kelas', $v)))
             ->when($filter['jenis'] ?? null, fn ($q, $v) => $q->where('jenis', $v));
@@ -34,6 +44,7 @@ class HalamanController extends Controller
         $detail = null;
         if (in_array($halaman, ['tagihan', 'tunggakan'])) {
             $baris = $tagihan->when($halaman === 'tunggakan', fn ($q) => $q->menunggak(today()))
+                ->when(($filter['peringatan'] ?? null) === 'dekat', fn ($q) => $q->whereIn('tagihan.id', (clone $dekat)->reorder()->select('tagihan.id')))
                 ->when($filter['periode'] ?? null, fn ($q, $v) => $q->where('periode', $v))
                 ->when(in_array($filter['status'] ?? '', ['belum', 'lunas']), fn ($q) => $q->where('status', $filter['status']))
                 ->orderBy('jatuh_tempo')->paginate(15)->withQueryString();
@@ -60,7 +71,8 @@ class HalamanController extends Controller
         return view('keuangan.index', compact('halaman', 'baris', 'detail', 'periode', 'rekap', 'bulanan', 'metode') + [
             'terbaru' => (clone $pembayaran)->limit(5)->get(),
             'menunggu' => Pembayaran::where('status', StatusPembayaran::Menunggu)->count(),
-            'jatuhTempo' => Tagihan::where('status', Tagihan::BELUM)->whereDate('jatuh_tempo', '>=', today())->orderBy('jatuh_tempo')->first(),
+            'jumlahDekat' => (clone $dekat)->count(),
+            'jumlahMenunggak' => Tagihan::menunggak(today())->count(),
         ]);
     }
 

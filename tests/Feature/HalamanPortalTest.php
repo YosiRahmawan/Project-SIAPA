@@ -13,6 +13,15 @@ class HalamanPortalTest extends TestCase
 {
     use RefreshDatabase, SiapkanData;
 
+    public function test_pencarian_nis_laporan_tidak_meninggalkan_pengguna_di_404(): void
+    {
+        $this->withoutVite();
+        $this->actingAs($this->staf(Role::Yayasan))->followingRedirects()->get('/laporan/rekap?nis=0000&periode=2026-11')
+            ->assertOk()->assertSee('Siswa dengan NIS tersebut tidak ditemukan.')->assertSee('id="lookup-error"', false);
+        $siswa = Siswa::factory()->create();
+        $this->get('/laporan/rekap?nis='.$siswa->nis)->assertRedirect('/laporan/siswa/'.$siswa->nis);
+    }
+
     public function test_alamat_admin_mengarah_ke_pengguna_dengan_hak_akses_yang_sama(): void
     {
         $this->get('/admin')->assertRedirect('/login');

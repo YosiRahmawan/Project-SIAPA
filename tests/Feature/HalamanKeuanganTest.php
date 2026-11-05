@@ -15,6 +15,75 @@ class HalamanKeuanganTest extends TestCase
 {
     use RefreshDatabase, SiapkanData;
 
+    public function test_dashboard_memisahkan_tunggakan_dan_pengingat_dekat(): void
+    {
+        $this->withoutVite();
+        $this->travelTo('2026-11-06');
+        $lewat = Siswa::factory()->create(['nama' => 'Contoh Lewat']);
+        $dekat = Siswa::factory()->create(['nama' => 'Contoh Dekat']);
+        $jauh = Siswa::factory()->create(['nama' => 'Contoh Jauh']);
+        $this->tagihan(['nis' => $lewat->nis, 'jatuh_tempo' => '2026-11-01']);
+        $this->tagihan(['nis' => $dekat->nis, 'jatuh_tempo' => '2026-11-10']);
+        $this->tagihan(['nis' => $jauh->nis, 'jatuh_tempo' => '2026-12-10']);
+        $this->actingAs($this->staf(Role::Keuangan))->get('/keuangan')->assertOk()
+            ->assertViewHas('jumlahDekat', 1)->assertViewHas('jumlahMenunggak', 1)
+            ->assertSee('1 tagihan sudah melewati jatuh tempo')->assertSee('1 tagihan segera jatuh tempo');
+        $this->get('/keuangan/halaman/tagihan?peringatan=dekat')->assertOk()
+            ->assertSee('Contoh Dekat')->assertDontSee('Contoh Lewat')->assertDontSee('Contoh Jauh');
+    }
+
+    public function test_qris_menunggu_tampil_konsisten_di_daftar_tagihan(): void
+    {
+        $this->withoutVite();
+        Storage::fake('local');
+        $petugas = $this->staf(Role::Keuangan);
+        $tagihan = $this->tagihan(['jatuh_tempo' => today()->subDay()]);
+        app(PembayaranService::class)->ajukanQris($tagihan, 1000, UploadedFile::fake()->image('bukti.png'), $petugas);
+        $this->actingAs($petugas)->get('/keuangan/halaman/tagihan')->assertOk()
+            ->assertSee('Menunggu verifikasi')->assertDontSee('>Menunggak<', false);
+    }
+
+    public function test_aksi_keuangan_menyisakan_pesan_sukses_di_halaman_tujuan(): void
+    {
+        $this->withoutVite();
+        Storage::fake('local');
+        $petugas = $this->staf(Role::Keuangan);
+        $service = app(PembayaranService::class);
+        $tagihan = $this->tagihan();
+        $qris = $service->ajukanQris($tagihan, 1000, UploadedFile::fake()->image('terima.png'), $petugas);
+        $this->actingAs($petugas)->postJson('/keuangan/pembayaran/'.$qris->id.'/verifikasi', ['terima' => true])->assertOk();
+        $this->get('/keuangan/halaman/verifikasi')->assertSee('Pembayaran QRIS berhasil diterima.');
+        $this->get('/keuangan/halaman/verifikasi')->assertDontSee('Pembayaran QRIS berhasil diterima.');
+        $this->postJson('/keuangan/pembayaran/'.$qris->id.'/batal', ['alasan' => 'Salah catat'])->assertOk();
+        $this->get('/keuangan/halaman/laporan')->assertSee('Pembayaran berhasil dibatalkan.');
+        $jemputan = $this->tagihan(['jenis' => \App\Enums\JenisTagihan::Jemputan]);
+        $this->patchJson('/keuangan/tagihan/'.$jemputan->id.'/nominal', ['nominal' => 200000])->assertOk();
+        $this->get('/keuangan/halaman/tagihan')->assertSee('Nominal jemputan berhasil diperbarui.');
+        $ditolak = $service->ajukanQris($tagihan, 1000, UploadedFile::fake()->image('tolak.png'), $petugas);
+        $this->postJson('/keuangan/pembayaran/'.$ditolak->id.'/verifikasi', ['terima' => false, 'alasan' => 'Bukti tidak sesuai'])->assertOk();
+        $this->get('/keuangan/halaman/verifikasi')->assertSee('Bukti QRIS berhasil ditolak.');
+    }
+
+    public function test_filter_tidak_valid_memberi_pesan_di_halaman(): void
+    {
+        $this->withoutVite();
+        $this->actingAs($this->staf(Role::Keuangan))->from('/keuangan/halaman/laporan')->followingRedirects()
+            ->get('/keuangan/halaman/laporan?periode=salah')->assertOk()->assertSee('Periode harus berformat YYYY-MM')->assertSee('role="alert"', false);
+    }
+
+    public function test_sisa_tagihan_dapat_dibayar_saat_qris_sebagian_menunggu(): void
+    {
+        Storage::fake('local');
+        $petugas = $this->staf(Role::Keuangan);
+        $tagihan = $this->tagihan(['nominal' => 590000]);
+        app(PembayaranService::class)->ajukanQris($tagihan, 100000, UploadedFile::fake()->image('bukti.png'), $petugas);
+        $this->actingAs($petugas)->getJson('/keuangan/siswa/'.$tagihan->nis)
+            ->assertOk()->assertJsonPath('tagihan.0.sisa_bisa_dibayar', 490000)->assertJsonPath('tagihan.0.status_tampil', 'menunggu_verifikasi');
+        $this->postJson('/keuangan/tagihan/'.$tagihan->id.'/pembayaran', ['metode' => 'manual', 'jumlah' => 490001])->assertUnprocessable();
+        $this->postJson('/keuangan/tagihan/'.$tagihan->id.'/pembayaran', ['metode' => 'manual', 'jumlah' => 490000])->assertCreated();
+        $this->getJson('/keuangan/siswa/'.$tagihan->nis)->assertJsonPath('tagihan.0.sisa_bisa_dibayar', 0);
+    }
+
     public function test_ubah_nominal_jemputan_hanya_ditawarkan_sebelum_ada_pembayaran(): void
     {
         $this->withoutVite();

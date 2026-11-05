@@ -56,9 +56,19 @@ function updateSummary() {
     $('#summary-amount').textContent = money(amount);
     $('#summary-left').textContent = money(Math.max(0, bill.nominal - bill.dibayar - amount));
 }
+function clearPaymentSummary() {
+    ['total','paid','amount','left'].forEach(key => $(`#summary-${key}`).textContent = money(0));
+}
 $('#student-search')?.addEventListener('submit', e => {
     e.preventDefault();
     const form = e.currentTarget;
+    bills = [];
+    clearPaymentSummary();
+    $('#feedback').hidden = true;
+    $('#feedback').textContent = '';
+    $('#feedback').classList.toggle('error', false);
+    $('#payment-form').reset();
+    syncPaymentMethod();
     $('#payment-form').hidden = true;
     $('#student-result').textContent = 'Mencari siswa…';
     submit(form, async () => {
@@ -71,7 +81,7 @@ $('#student-search')?.addEventListener('submit', e => {
         const detail = document.createElement('small'); detail.textContent = `NIS ${data.siswa.nis} / Kelas ${data.siswa.kelas} / ${data.siswa.aktif ? 'Aktif' : 'Tidak aktif'}`;
         card.append(name, detail); result.append(card);
         // Backend reserves pending QRIS amounts; refresh this list after each submission.
-        bills = data.tagihan.filter(b => b.status !== 'lunas' && b.status_tampil !== 'menunggu_verifikasi' && b.nominal > b.dibayar);
+        bills = data.tagihan.filter(b => b.status !== 'lunas' && b.sisa_bisa_dibayar > 0);
         const options = $('#bill-options'); options.querySelectorAll('label').forEach(el => el.remove());
         if (!bills.length) { const text = document.createElement('p'); text.textContent = 'Tidak ada tagihan yang dapat dibayar. Tagihan sudah lunas atau sedang menunggu verifikasi.'; result.append(text); return; }
         bills.forEach((bill, index) => {
@@ -79,18 +89,27 @@ $('#student-search')?.addEventListener('submit', e => {
             const radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'tagihan'; radio.value = bill.id; radio.required = true; radio.checked = index === 0;
             const text = document.createElement('span'); text.textContent = `${jenis[bill.jenis]} ${bill.periode}`;
             const due = document.createElement('small'); due.textContent = `Jatuh tempo ${bill.jatuh_tempo}`; text.append(due);
-            const amount = document.createElement('strong'); amount.textContent = money(bill.nominal - bill.dibayar);
-            radio.addEventListener('change', () => { $('#payment-amount').max = bill.nominal - bill.dibayar; $('#payment-amount').value = bill.nominal - bill.dibayar; updateSummary(); });
+            const amount = document.createElement('strong'); amount.textContent = money(bill.sisa_bisa_dibayar);
+            radio.addEventListener('change', () => { $('#payment-amount').max = bill.sisa_bisa_dibayar; $('#payment-amount').value = bill.sisa_bisa_dibayar; updateSummary(); });
+            if (bill.status_tampil === 'menunggu_verifikasi') {
+                const pending = document.createElement('small'); pending.textContent = 'Ada QRIS menunggu verifikasi. Nominal di kanan adalah sisa yang masih dapat dibayar.'; text.append(pending);
+            }
             label.append(radio, text, amount); options.append(label);
         });
-        $('#payment-amount').max = bills[0].nominal - bills[0].dibayar;
-        $('#payment-amount').value = bills[0].nominal - bills[0].dibayar;
+        $('#payment-amount').max = bills[0].sisa_bisa_dibayar;
+        $('#payment-amount').value = bills[0].sisa_bisa_dibayar;
         $('#payment-form').hidden = false;
         updateSummary();
     });
 });
 $('#payment-amount')?.addEventListener('input', updateSummary);
-$('#payment-method')?.addEventListener('change', e => { const qris = e.target.value === 'qris'; $('#proof-field').hidden = !qris; $('#proof-field input').required = qris; if (!qris) $('#proof-field input').value = ''; });
+function syncPaymentMethod() {
+    const qris = $('#payment-method').value === 'qris';
+    $('#proof-field').hidden = !qris;
+    $('#proof-field input').required = qris;
+    if (!qris) $('#proof-field input').value = '';
+}
+$('#payment-method')?.addEventListener('change', syncPaymentMethod);
 $('#payment-form')?.addEventListener('submit', e => {
     e.preventDefault(); const form = e.currentTarget;
     submit(form, async () => {
@@ -100,8 +119,9 @@ $('#payment-form')?.addEventListener('submit', e => {
         const payment = await api(`/keuangan/tagihan/${bill.value}/pembayaran`, { method: 'POST', body: data });
         form.hidden = true;
         $('#student-result').textContent = 'Pembayaran tersimpan. Cari siswa kembali untuk memuat tagihan terbaru.';
-        ['total','paid','amount','left'].forEach(key => $(`#summary-${key}`).textContent = money(0));
+        clearPaymentSummary();
         form.reset();
+        syncPaymentMethod();
         feedback(payment.status === 'diterima' ? 'Pembayaran diterima. Saldo tagihan sudah diperbarui.' : 'Pengajuan QRIS tersimpan dan menunggu verifikasi.', false, payment.status === 'diterima' ? payment.id : null);
     });
 });

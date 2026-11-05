@@ -189,6 +189,47 @@ class AksesTest extends TestCase
         $this->actingAs($admin)->patchJson("/admin/pengguna/{$admin->id}", ['aktif' => false])->assertUnprocessable();
     }
 
+    public function test_admin_mengelola_status_siswa_dan_akses_login_secara_jelas(): void
+    {
+        [$user, $siswa] = $this->akunSiswa();
+        $admin = $this->staf(Role::Admin);
+        $this->actingAs($admin)->patchJson('/admin/siswa/'.$siswa->nis, ['aktif' => false])->assertOk();
+        $this->assertFalse($siswa->fresh()->aktif);
+        $this->assertFalse($user->fresh()->aktif);
+
+        $this->actingAs($user->fresh())->getJson('/siswa/tagihan')->assertUnauthorized()->assertJsonPath('message', 'Akun dinonaktifkan. Hubungi admin sekolah.');
+        $this->assertGuest();
+        $this->actingAs($user->fresh())->get('/siswa/tagihan')->assertRedirect('/login')->assertSessionHasErrors('username');
+
+        $this->actingAs($admin)->patchJson('/admin/siswa/'.$siswa->nis, ['aktif' => true, 'login_aktif' => true, 'nama' => 'Nama Diperbarui'])->assertOk();
+        $this->assertTrue($user->fresh()->aktif);
+        $this->assertSame('Nama Diperbarui', $user->fresh()->nama);
+        $this->actingAs($user->fresh())->getJson('/siswa/tagihan')->assertOk();
+
+        $this->actingAs($admin)->patchJson('/admin/siswa/'.$siswa->nis, ['login_aktif' => false])->assertOk();
+        $this->assertTrue($siswa->fresh()->aktif);
+        $this->assertFalse($user->fresh()->aktif);
+    }
+
+    public function test_akun_baru_siswa_nonaktif_tidak_diberi_akses_login(): void
+    {
+        $siswa = Siswa::factory()->create(['aktif' => false]);
+        $this->actingAs($this->staf(Role::Admin))->postJson('/admin/siswa/'.$siswa->nis.'/akun')->assertCreated();
+        $this->assertFalse($siswa->fresh()->user->aktif);
+    }
+
+    public function test_siswa_nonaktif_lama_ditolak_meski_flag_akun_masih_aktif(): void
+    {
+        [$user, $siswa] = $this->akunSiswa();
+        $user->update(['password' => 'Rahasia123']);
+        $siswa->update(['aktif' => false]);
+        $this->assertTrue($user->aktif);
+        $this->actingAs($user)->getJson('/siswa/tagihan')->assertUnauthorized();
+        $this->assertGuest();
+        $this->post('/login', ['username' => $user->username, 'password' => 'Rahasia123'])->assertSessionHasErrors('username');
+        $this->assertGuest();
+    }
+
     public function test_alur_pembayaran_lewat_http(): void
     {
         Storage::fake('local');

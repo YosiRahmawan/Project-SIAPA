@@ -52,13 +52,19 @@ class PembayaranController extends Controller
     {
         $data = $request->validate(['terima' => 'required|boolean', 'alasan' => 'required_if:terima,false|nullable|string|max:500']);
 
-        return $this->service->putuskan($pembayaran, (bool) $data['terima'], $request->user(), $data['alasan'] ?? null)->makeHidden('bukti');
+        $hasil = $this->service->putuskan($pembayaran, (bool) $data['terima'], $request->user(), $data['alasan'] ?? null)->makeHidden('bukti');
+        $request->session()->flash('success', $data['terima'] ? 'Pembayaran QRIS berhasil diterima. Saldo tagihan sudah diperbarui.' : 'Bukti QRIS berhasil ditolak. Alasan penolakan sudah dicatat.');
+
+        return $hasil;
     }
 
     public function batal(Request $request, Pembayaran $pembayaran)
     {
         $alasan = $request->validate(['alasan' => 'required|string|max:500'])['alasan'];
 
-        return $this->service->batalkan($pembayaran, $alasan, $request->user())->makeHidden('bukti');
+        $hasil = $this->service->batalkan($pembayaran, $alasan, $request->user())->makeHidden('bukti');
+        $request->session()->flash('success', 'Pembayaran berhasil dibatalkan. Penerimaan dan saldo tagihan sudah dihitung ulang.');
+
+        return $hasil;
     }
 }

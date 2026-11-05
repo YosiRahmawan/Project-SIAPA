@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Services\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +23,11 @@ class AuthController extends Controller
         if (! Auth::attempt([...$data, 'aktif' => true])) {
             Audit::catat('login.gagal', 'users', null, null, ['username' => $data['username']]);
             throw ValidationException::withMessages(['username' => 'Username atau password salah.']);
+        }
+        if (Auth::user()->adalah(Role::Siswa) && Auth::user()->siswa?->aktif === false) {
+            Auth::logout();
+            Audit::catat('login.gagal', 'users', null, null, ['username' => $data['username']]);
+            throw ValidationException::withMessages(['username' => 'Akun siswa dinonaktifkan. Hubungi admin sekolah.']);
         }
         $request->session()->regenerate();
         Audit::catat('login', 'users', Auth::id());
