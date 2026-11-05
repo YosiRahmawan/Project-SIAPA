@@ -104,7 +104,9 @@ class AlertLaporanTest extends TestCase
         $this->assertCount(1, $json);
 
         $csv = $this->actingAs($petugas)->get('/laporan/pembayaran?format=csv')->assertOk()->streamedContent();
-        $this->assertStringContainsString('tanggal,nis,nama,jenis,periode,metode,jumlah,status,alasan', $csv);
+        $rows = array_map(fn ($line) => str_getcsv($line, ',', '"', ''), explode("\n", trim(substr($csv, 3))));
+        $this->assertSame(['Tanggal', 'NIS', 'Nama Siswa', 'Kelas', 'Jenis Tagihan', 'Periode', 'Metode Pembayaran', 'Jumlah (Rp)', 'Status', 'Keterangan'], $rows[0]);
+        $this->assertSame('Dibatalkan', $rows[1][8]);
         $this->assertStringContainsString('Aisyah', $csv);
         $this->assertStringContainsString("'=HYPERLINK", $csv); // rumus Excel dinetralkan
     }
@@ -122,5 +124,22 @@ class AlertLaporanTest extends TestCase
         $this->assertCount(1, $data);
         $this->assertSame('Salah input', $data[0]['sesudah']['alasan']);
         $this->assertSame($petugas->nama, $data[0]['pelaku']['nama']);
+    }
+
+    public function test_ekspor_melewati_500_transaksi_tetap_lengkap_dan_nama_aman(): void
+    {
+        $staf = $this->staf(Role::Keuangan);
+        $siswa = Siswa::factory()->create(['nama' => '=Nama Contoh']);
+        $tagihan = $this->tagihan(['nis' => $siswa->nis, 'nominal' => 1000000]);
+        $rows = [];
+        foreach (range(1, 501) as $i) {
+            $rows[] = ['tagihan_id' => $tagihan->id, 'metode' => 'manual', 'jumlah' => $i, 'status' => 'diterima', 'dicatat_oleh' => $staf->id, 'tanggal' => $i % 2 ? '2026-11-01' : '2026-11-02', 'created_at' => now(), 'updated_at' => now()];
+        }
+        \Illuminate\Support\Facades\DB::table('pembayaran')->insert($rows);
+        $csv = $this->actingAs($staf)->get('/laporan/pembayaran?format=csv')->assertOk()->streamedContent();
+        $lines = array_map(fn ($line) => str_getcsv($line, ',', '"', ''), explode("\n", trim(substr($csv, 3))));
+        $this->assertCount(502, $lines);
+        $this->assertCount(501, array_unique(array_column(array_slice($lines, 1), 7)));
+        $this->assertSame("'=Nama Contoh", $lines[1][2]);
     }
 }

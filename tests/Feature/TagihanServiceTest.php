@@ -29,17 +29,18 @@ class TagihanServiceTest extends TestCase
 
     public function test_spp_mengikuti_tarif_per_kelas_dan_jatuh_tempo_tanggal_10(): void
     {
-        foreach ([1, 2, 3, 6] as $kelas) {
+        foreach (range(1, 6) as $kelas) {
             Siswa::factory()->kelas($kelas)->create(['nis' => "100{$kelas}"]);
         }
 
-        $this->assertSame(4, $this->service->generateSpp('2026-11'));
+        $this->assertSame(6, $this->service->generateSpp('2026-11'));
 
         $nominal = Tagihan::pluck('nominal', 'nis');
         $this->assertSame(590000, $nominal['1001']);
         $this->assertSame(550000, $nominal['1002']);
-        $this->assertSame(540000, $nominal['1003']);
-        $this->assertSame(540000, $nominal['1006']);
+        foreach (range(3, 6) as $kelas) {
+            $this->assertSame(540000, $nominal['100'.$kelas]);
+        }
         $this->assertSame('2026-11-10', Tagihan::first()->jatuh_tempo->toDateString());
         $this->assertSame('belum', Tagihan::first()->status);
     }
@@ -70,16 +71,20 @@ class TagihanServiceTest extends TestCase
         $this->assertSame(600000, Tagihan::first()->nominal);
     }
 
-    public function test_daftar_ulang_hanya_kelas_2_dan_6_jatuh_tempo_10_desember(): void
+    public function test_daftar_ulang_kelas_2_sampai_6_sesuai_catatan_sekolah(): void
     {
-        foreach ([1, 2, 3, 6] as $kelas) {
+        foreach (range(1, 6) as $kelas) {
             Siswa::factory()->kelas($kelas)->create(['nis' => "200{$kelas}"]);
         }
 
-        $this->assertSame(2, $this->service->generateDaftarUlang(2026));
+        $this->assertSame(5, $this->service->generateDaftarUlang(2026));
 
         $t = Tagihan::where('jenis', JenisTagihan::DaftarUlang)->pluck('nominal', 'nis');
-        $this->assertSame(3500000, $t['2002']);
+        foreach (range(2, 5) as $kelas) {
+            $this->assertSame(3500000, $t['200'.$kelas]);
+        }
+        $this->assertArrayNotHasKey('2001', $t->all());
+        $this->assertSame(0, $this->service->generateDaftarUlang(2026));
         $this->assertSame(3200000, $t['2006']);
         $this->assertSame('2026-12-10', Tagihan::first()->jatuh_tempo->toDateString());
     }
@@ -89,6 +94,18 @@ class TagihanServiceTest extends TestCase
         $this->expectException(ValidationException::class);
 
         $this->service->generateSpp('2026-13');
+    }
+
+    public function test_pembaruan_tarif_tidak_mengubah_tagihan_yang_sudah_ada(): void
+    {
+        $siswa = Siswa::factory()->kelas(3)->create();
+        $lama = $this->tagihan(['nis' => $siswa->nis, 'jenis' => JenisTagihan::DaftarUlang, 'periode' => '2026-12', 'nominal' => 3000000]);
+        $this->seedTarif();
+
+        $this->assertSame(0, $this->service->generateDaftarUlang(2026));
+        $this->assertSame(3000000, $lama->fresh()->nominal);
+        $this->assertSame(1, $this->service->generateDaftarUlang(2027));
+        $this->assertSame(3500000, Tagihan::where('periode', '2027-12')->first()->nominal);
     }
 
     public function test_jemputan_nominal_manual_dan_tidak_boleh_ganda(): void

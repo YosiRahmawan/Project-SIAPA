@@ -14,9 +14,13 @@ Mengelola pembayaran SPP, daftar ulang, dan jemputan siswa (manual dan QRIS), de
 ## Aturan singkat
 
 - SPP: kelas 1 Rp590.000, kelas 2 Rp550.000, kelas 3 sampai 6 Rp540.000.
-- Daftar ulang: kelas 2 Rp3.500.000, kelas 6 Rp3.200.000.
+- Daftar ulang: kelas 2-5 Rp3.500.000, kelas 6 Rp3.200.000.
 - SPP dan jemputan jatuh tempo sebelum tanggal 10 tiap bulan. Daftar ulang 10 Desember.
 - Jemputan dan pembayaran diinput manual oleh Petugas Keuangan, QRIS dikonfirmasi petugas.
+
+Untuk memperbarui tarif pada database yang sudah ada, jalankan `php artisan db:seed --class=TarifSeeder`. Perintah ini memperbarui daftar tarif; tagihan dan pembayaran lama tetap dipertahankan. Tarif baru digunakan ketika petugas membuat tagihan berikutnya.
+
+Ekspor laporan tersedia sebagai CSV yang dapat dibuka di Excel, dengan judul kolom Indonesia dan kolom Keterangan untuk alasan penolakan atau pembatalan.
 
 ## Dokumentasi
 

@@ -26,7 +26,9 @@ class AuthController extends Controller
         $request->session()->regenerate();
         Audit::catat('login', 'users', Auth::id());
 
-        return redirect()->intended($request->user()->harus_ganti_password ? '/ganti-password' : $request->user()->role->beranda());
+        $request->session()->forget('url.intended');
+
+        return redirect($request->user()->harus_ganti_password ? '/ganti-password' : $request->user()->role->beranda());
     }
 
     public function logout(Request $request)
