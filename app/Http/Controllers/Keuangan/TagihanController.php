@@ -44,6 +44,9 @@ class TagihanController extends Controller
     {
         $nominal = $request->validate(['nominal' => 'required|integer|min:1'])['nominal'];
 
-        return $this->service->ubahNominalJemputan($tagihan, $nominal);
+        $hasil = $this->service->ubahNominalJemputan($tagihan, $nominal);
+        $request->session()->flash('success', 'Nominal jemputan berhasil diperbarui.');
+
+        return $hasil;
     }
 }

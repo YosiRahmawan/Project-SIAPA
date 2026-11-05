@@ -19,6 +19,8 @@ function openEditor(row = null) {
     document.querySelector('#editor-title').textContent = `${row ? 'Edit' : 'Tambah'} ${form.dataset.kind === 'pengguna' ? 'pengguna' : 'siswa'}`;
     document.querySelector('#editor-error').hidden = true;
     document.querySelector('#active-field').hidden = !row;
+    const loginField = document.querySelector('#login-active-field');
+    if (loginField) loginField.hidden = !row || row.login_aktif === undefined;
     const identity = form.elements.namedItem(form.dataset.kind === 'pengguna' ? 'username' : 'nis');
     identity.disabled = Boolean(row);
     if (row) for (const [key, value] of Object.entries(row)) {
@@ -43,6 +45,8 @@ form?.addEventListener('submit', async event => {
     const id = form.dataset.id;
     if (!data.password) delete data.password;
     if (id) data.aktif = data.aktif === '1'; else delete data.aktif;
+    if (id && !document.querySelector('#login-active-field')?.hidden && data.login_aktif !== undefined) data.login_aktif = data.login_aktif === '1';
+    else delete data.login_aktif;
     if (data.kelas) data.kelas = Number(data.kelas);
     button.disabled = true; button.textContent = 'Menyimpan…'; error.hidden = true;
     form.setAttribute('aria-busy','true');
@@ -56,6 +60,8 @@ form?.addEventListener('submit', async event => {
 const accountDialog = document.querySelector('#account-dialog');
 const accountCreate = document.querySelector('#account-create');
 let accountCreated = false;
+let accountBusy = false;
+accountDialog?.addEventListener('cancel', event => { if (accountBusy) event.preventDefault(); });
 document.querySelectorAll('[data-account]').forEach(button => button.addEventListener('click', () => {
     accountCreate.dataset.nis = button.dataset.account;
     accountCreate.hidden = false; accountCreate.disabled = false;
@@ -65,6 +71,10 @@ document.querySelectorAll('[data-account]').forEach(button => button.addEventLis
     accountDialog.showModal();
 }));
 accountCreate?.addEventListener('click', async () => {
+    if (accountBusy) return;
+    accountBusy = true;
+    accountDialog.setAttribute('aria-busy', 'true');
+    accountDialog.querySelectorAll('[data-close]').forEach(button => button.disabled = true);
     accountCreate.disabled = true; accountCreate.textContent = 'Membuat…';
     const result = document.querySelector('#account-result');
     try {
@@ -78,10 +88,11 @@ accountCreate?.addEventListener('click', async () => {
         const note = document.createElement('p'); note.textContent = 'Simpan informasi ini sebelum menutup. Kata sandi awal tidak dapat ditampilkan kembali.'; result.append(note);
         accountCreate.hidden = true; accountCreated = true;
     } catch (e) { result.textContent = e.message; }
-    finally { accountCreate.disabled = false; accountCreate.textContent = 'Buat akun'; }
+    finally {
+        accountBusy = false;
+        accountDialog.removeAttribute('aria-busy');
+        accountDialog.querySelectorAll('[data-close]').forEach(button => button.disabled = false);
+        accountCreate.disabled = false; accountCreate.textContent = 'Buat akun';
+    }
 });
 accountDialog?.addEventListener('close', () => { if (accountCreated) location.reload(); });
-document.querySelector('#student-lookup')?.addEventListener('submit', event => {
-    event.preventDefault();
-    location.assign(`/laporan/siswa/${encodeURIComponent(event.currentTarget.elements.nis.value.trim())}`);
-});

@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('web', \App\Http\Middleware\AkunAktif::class);
         $middleware->alias([
             'role' => BatasiRole::class,
             'ganti.password' => WajibGantiPassword::class,

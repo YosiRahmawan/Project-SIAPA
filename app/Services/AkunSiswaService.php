@@ -30,6 +30,7 @@ class AkunSiswaService
                 'username' => $siswa->nis,
                 'password' => $password,
                 'role' => Role::Siswa,
+                'aktif' => $siswa->aktif,
                 'harus_ganti_password' => true,
             ]);
             $siswa->forceFill(['user_id' => $user->id])->save();

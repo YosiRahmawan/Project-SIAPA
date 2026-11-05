@@ -88,7 +88,7 @@ class Tagihan extends Model
         if ($this->lunas()) {
             return 'lunas';
         }
-        if ($this->pembayaran()->where('status', StatusPembayaran::Menunggu)->exists()) {
+        if ($this->getAttribute('ada_menunggu') ?? $this->pembayaran()->where('status', StatusPembayaran::Menunggu)->exists()) {
             return 'menunggu_verifikasi';
         }
         if ($hari->greaterThan($this->jatuh_tempo)) {
@@ -110,6 +110,7 @@ class Tagihan extends Model
             'periode' => $this->periode,
             'nominal' => $this->nominal,
             'dibayar' => $this->dibayar(),
+            'sisa_bisa_dibayar' => $this->sisa(),
             'jatuh_tempo' => $this->jatuh_tempo->toDateString(),
             'status' => $this->status,
             'status_tampil' => $this->statusTampil($hari),

@@ -18,7 +18,16 @@ class LaporanController extends Controller
 
     public function rekap(Request $request)
     {
-        $data = $this->laporan->rekap($request->validate(['periode' => 'nullable|date_format:Y-m'])['periode'] ?? null);
+        $filter = $request->validate(['periode' => 'nullable|date_format:Y-m', 'nis' => 'nullable|digits_between:4,20']);
+        if ($request->filled('nis')) {
+            if (! Siswa::whereKey($filter['nis'])->exists()) {
+                return redirect('/laporan/rekap'.(isset($filter['periode']) ? '?periode='.$filter['periode'] : ''))
+                    ->withErrors(['nis' => 'Siswa dengan NIS tersebut tidak ditemukan. Periksa NIS dan coba kembali.'])->withInput();
+            }
+
+            return redirect('/laporan/siswa/'.$filter['nis']);
+        }
+        $data = $this->laporan->rekap($filter['periode'] ?? null);
 
         return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'rekap', 'data' => $data]);
     }
