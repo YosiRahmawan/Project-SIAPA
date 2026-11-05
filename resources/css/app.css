@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
+@import './keuangan.css';
+@import './login.css';
+@import './portal.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Keuangan\HalamanController;
 use App\Http\Controllers\Keuangan\PembayaranController;
 use App\Http\Controllers\Keuangan\TagihanController;
 use App\Http\Controllers\Laporan\LaporanController;
@@ -36,6 +37,10 @@ Route::middleware('auth')->group(function () {
 
         // Petugas Keuangan: tagihan dan pembayaran.
         Route::middleware('role:keuangan')->prefix('keuangan')->group(function () {
+            Route::get('/', [HalamanController::class, 'index']);
+            Route::get('bukti/{pembayaran}', [HalamanController::class, 'bukti']);
+            Route::get('kuitansi/{pembayaran}', [HalamanController::class, 'kuitansi']);
+            Route::get('halaman/{halaman}', [HalamanController::class, 'index'])->whereIn('halaman', ['pembayaran', 'tagihan', 'buat-tagihan', 'verifikasi', 'tunggakan', 'data-siswa', 'laporan', 'penerimaan']);
             Route::post('tagihan/spp', [TagihanController::class, 'spp']);
             Route::post('tagihan/daftar-ulang', [TagihanController::class, 'daftarUlang']);
             Route::post('tagihan/jemputan', [TagihanController::class, 'jemputan']);

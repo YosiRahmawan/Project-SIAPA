@@ -15,7 +15,7 @@ enum Role: string
         return match ($this) {
             self::Admin => '/admin/pengguna',
             self::Yayasan => '/laporan/rekap',
-            self::Keuangan => '/laporan/tunggakan',
+            self::Keuangan => '/keuangan',
             self::Siswa => '/siswa/tagihan',
         };
     }
