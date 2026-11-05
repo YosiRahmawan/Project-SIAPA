@@ -1,1 +1,2 @@
-//
+import './keuangan';
+import './portal';

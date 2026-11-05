@@ -12,9 +12,11 @@ class SiswaController extends Controller
 {
     public function index(Request $request)
     {
-        return Siswa::query()
+        $data = Siswa::query()
             ->when($request->query('q'), fn ($q, $v) => $q->where(fn ($w) => $w->where('nis', 'like', "{$v}%")->orWhere('nama', 'like', "%{$v}%")))
-            ->orderBy('kelas')->orderBy('nama')->paginate(25);
+            ->orderBy('kelas')->orderBy('nama')->paginate(25)->withQueryString();
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'siswa', 'data' => $data]);
     }
 
     public function store(Request $request)

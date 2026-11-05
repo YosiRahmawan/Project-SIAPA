@@ -18,16 +18,20 @@ class LaporanController extends Controller
 
     public function rekap(Request $request)
     {
-        return $this->laporan->rekap($request->validate(['periode' => 'nullable|date_format:Y-m'])['periode'] ?? null);
+        $data = $this->laporan->rekap($request->validate(['periode' => 'nullable|date_format:Y-m'])['periode'] ?? null);
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'rekap', 'data' => $data]);
     }
 
     /** Tagihan belum lunas yang sudah lewat jatuh tempo. */
-    public function tunggakan()
+    public function tunggakan(Request $request)
     {
         $hari = today();
 
-        return Tagihan::menunggak($hari)->with('siswa:nis,nama,kelas')->orderBy('jatuh_tempo')->paginate(50)
+        $data = Tagihan::menunggak($hari)->with('siswa:nis,nama,kelas')->orderBy('jatuh_tempo')->paginate(50)
             ->through(fn (Tagihan $t) => $t->ringkas($hari) + ['nama' => $t->siswa->nama, 'kelas' => $t->siswa->kelas]);
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'tunggakan', 'data' => $data]);
     }
 
     /** Banner alert untuk dashboard Keuangan. */
@@ -51,19 +55,30 @@ class LaporanController extends Controller
         ]);
         $query = $this->laporan->pembayaran($f);
 
-        return ($f['format'] ?? 'json') === 'csv' ? $this->laporan->csv($query) : $query->paginate(50);
+        if (($f['format'] ?? 'json') === 'csv') {
+            return $this->laporan->csv($query);
+        }
+        $data = $query->paginate(50)->withQueryString();
+
+        return $request->expectsJson() || ($f['format'] ?? null) === 'json' ? $data : view('portal.index', ['halaman' => 'pembayaran', 'data' => $data]);
     }
 
-    public function siswa(string $nis)
+    public function siswa(Request $request, string $nis)
     {
         $siswa = Siswa::with('tagihan.pembayaran')->find($nis);
 
-        return $siswa ?: response()->json(['message' => 'Data siswa tidak ditemukan'], 404);
+        if (! $siswa) {
+            abort(404, 'Data siswa tidak ditemukan');
+        }
+
+        return $request->expectsJson() ? $siswa : view('portal.index', ['halaman' => 'detail-siswa', 'data' => $siswa]);
     }
 
     /** Peringatan untuk Yayasan: pembayaran yang dibatalkan beserta alasannya. */
-    public function pembatalan()
+    public function pembatalan(Request $request)
     {
-        return AuditLog::where('aksi', 'pembayaran.batal')->with('pelaku:id,nama')->latest('waktu')->paginate(50);
+        $data = AuditLog::where('aksi', 'pembayaran.batal')->with('pelaku:id,nama')->latest('waktu')->paginate(50);
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'pembatalan', 'data' => $data]);
     }
 }

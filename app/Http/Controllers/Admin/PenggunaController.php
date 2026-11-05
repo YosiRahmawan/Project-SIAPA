@@ -16,9 +16,11 @@ class PenggunaController extends Controller
     /** Akun siswa dibuat lewat menu siswa, bukan di sini. */
     private const ROLE_STAF = ['admin', 'yayasan', 'keuangan'];
 
-    public function index()
+    public function index(Request $request)
     {
-        return User::orderBy('nama')->paginate(25);
+        $data = User::orderBy('nama')->paginate(25);
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'pengguna', 'data' => $data]);
     }
 
     public function store(Request $request)

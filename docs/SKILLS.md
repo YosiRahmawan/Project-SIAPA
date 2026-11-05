@@ -53,3 +53,20 @@ Terpasang di `.claude/skills/`.
 | `genjutsu-compose-multiplatform` | Pola Compose/Kotlin Multiplatform. **Tidak dipakai** untuk SIAPA selama stack-nya web (Laravel). Aktif hanya bila nanti ada aplikasi mobile Compose. |
 
 Catatan: `design-dna` merujuk `references/schema.md` dan `references/generation-guide.md`, tetapi kedua file itu tidak ada di repo sumber. Skill tetap berjalan tanpa keduanya, hanya tanpa skema rinci.
+
+## 5. find-skills (mencari skill baru)
+
+Sumber: `vercel-labs/skills`. Terpasang di `.agents/skills/find-skills` dan di-symlink ke `.claude/skills/find-skills`. Versi terkunci di `skills-lock.json`.
+
+Dipakai saat ada pekerjaan khusus yang mungkin sudah punya skill siap pakai (misalnya changelog, review PR, pengujian, deploy), atau saat pengguna bertanya "adakah skill untuk X".
+
+Cara pakai:
+- Cari dengan `npx skills find <kata kunci>`; bisa dibatasi pemilik repo dengan `--owner <owner>`.
+- Pasang dengan `npx skills add <repo> --skill <nama>`; perbarui semuanya dengan `npx skills update`.
+- Daftar skill populer ada di https://skills.sh/.
+
+Aturan di project ini:
+- Periksa sebelum merekomendasikan atau memasang: jumlah install (utamakan di atas 1.000, hati-hati di bawah 100), reputasi sumber (`vercel-labs`, `anthropics`, `microsoft` lebih tepercaya), dan bintang repo (di bawah 100 perlu dicurigai).
+- Jangan memasang skill sendiri tanpa persetujuan pemilik project. Tampilkan nama, sumber, jumlah install, dan perintah pasangnya, lalu tunggu jawaban.
+- Skill berjalan dengan izin penuh agent, jadi baca isi `SKILL.md`-nya dulu sebelum dipakai.
+- Skill yang dipasang dicatat di dokumen ini dan di `skills-lock.json`, dan tidak boleh berisi data siswa atau rahasia.

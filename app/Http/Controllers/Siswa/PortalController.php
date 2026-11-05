@@ -15,23 +15,29 @@ class PortalController extends Controller
     {
         $hari = today();
 
-        return Tagihan::milik($request->user())->orderBy('jatuh_tempo')->get()
+        $data = Tagihan::milik($request->user())->orderBy('jatuh_tempo')->get()
             ->map(fn (Tagihan $t) => $t->ringkas($hari));
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'tagihan', 'data' => $data]);
     }
 
     public function riwayat(Request $request)
     {
-        return Pembayaran::whereHas('tagihan', fn ($q) => $q->milik($request->user()))
+        $data = Pembayaran::whereHas('tagihan', fn ($q) => $q->milik($request->user()))
             ->with('tagihan:id,jenis,periode')
             ->latest('tanggal')->latest('id')
             ->get(['id', 'tagihan_id', 'metode', 'jumlah', 'status', 'alasan', 'tanggal']);
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'riwayat', 'data' => $data]);
     }
 
     public function peringatan(Request $request, AlertService $alert)
     {
         $hari = today();
 
-        return $alert->peringatan($hari)->milik($request->user())->get()
+        $data = $alert->peringatan($hari)->milik($request->user())->get()
             ->map(fn (Tagihan $t) => $t->ringkas($hari));
+
+        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'peringatan', 'data' => $data]);
     }
 }
