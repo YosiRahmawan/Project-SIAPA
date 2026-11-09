@@ -32,7 +32,7 @@
     @elseif(in_array($halaman,['tagihan','tunggakan']))<a class="button primary" href="{{ $url('buat-tagihan') }}">+ Buat tagihan</a>
     @elseif(in_array($halaman,['laporan','penerimaan']))<a class="button primary" href="{{ '/laporan/pembayaran?'.http_build_query(['format'=>'csv','dari'=>$periode.'-01','sampai'=>\Carbon\CarbonImmutable::parse($periode.'-01')->endOfMonth()->toDateString(),'nis'=>request('nis'),'jenis'=>request('jenis'),'status'=>$halaman==='penerimaan'?'diterima':request('status')]) }}"><i class="ico" style="--icon:url('/icons/download.svg')"></i>Ekspor CSV</a>@endif</div>
     @if($errors->any())<div class="portal-form-error" role="alert">{{ $errors->first() }}</div>@endif
-    <div id="feedback" role="status" aria-live="polite" @if(!session('success')) hidden @endif>{{ session('success') }}</div>
+    @if(session('success'))<div data-flash="success" hidden>{{ session('success') }}</div>@endif
     @if($halaman==='dashboard')
     <div class="dashboard-grid">
         <section class="hero"><div class="hero-main"><p>Penerimaan terkonfirmasi</p><h2>{{ $uang($rekap['total']['diterima']) }}</h2><span class="badge">{{ str_replace('.',',',$persen) }}% terkumpul</span><progress value="{{ $persen }}" max="100" aria-label="Persentase tagihan terkumpul"></progress><small>Dari total tagihan {{ $uang($rekap['total']['total_nominal']) }}</small></div><div class="method-card"><h3>METODE PEMBAYARAN</h3><p><span>Tunai</span><strong>{{ $uang($metode['manual'] ?? 0) }}</strong></p><p><span>QRIS</span><strong>{{ $uang($metode['qris'] ?? 0) }}</strong></p><a href="{{ $url('penerimaan') }}" class="button white">Rincian penerimaan <span>→</span></a></div></section>

@@ -2,18 +2,11 @@ const $ = (s) => document.querySelector(s);
 const money = (n) => `Rp${Number(n || 0).toLocaleString('id-ID')}`;
 const jenis = { spp: 'SPP', daftar_ulang: 'Daftar ulang', jemputan: 'Jemputan' };
 function feedback(message, error = false, receipt = null) {
-    const box = $('#feedback');
-    if (!box) return;
-    box.hidden = false;
-    box.classList.toggle('error', error);
-    box.textContent = message;
-    if (receipt) {
-        const link = document.createElement('a');
-        link.href = `/keuangan/kuitansi/${receipt}`;
-        link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Cetak kuitansi ↗';
-        box.append(link);
-    }
-    box.scrollIntoView({ block: 'nearest' });
+    window.toast?.(message, {
+        type: error ? 'error' : 'success',
+        duration: receipt ? 12000 : 6000,
+        link: receipt ? { href: `/keuangan/kuitansi/${receipt}`, text: 'Cetak kuitansi ↗' } : null,
+    });
 }
 async function api(url, options = {}) {
     const response = await fetch(url, {
@@ -102,11 +95,7 @@ function clearPaymentSummary() {
 function loadStudent(form, keepFeedback = false) {
     bills = [];
     clearPaymentSummary();
-    if (!keepFeedback) {
-        $('#feedback').hidden = true;
-        $('#feedback').textContent = '';
-        $('#feedback').classList.toggle('error', false);
-    }
+    if (!keepFeedback) window.toast?.clear?.();
     $('#payment-form').reset();
     syncPaymentMethod();
     $('#payment-form').hidden = true;

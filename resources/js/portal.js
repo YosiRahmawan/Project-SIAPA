@@ -1,10 +1,8 @@
 const editor = document.querySelector('#portal-editor');
 const form = document.querySelector('#portal-editor-form');
-const feedback = document.querySelector('#portal-feedback');
 const saved = sessionStorage.getItem('portal-saved');
-if (feedback && saved) {
-    feedback.textContent = saved;
-    feedback.hidden = false;
+if (saved) {
+    window.toast?.(saved);
     sessionStorage.removeItem('portal-saved');
 }
 async function send(url, method, data) {

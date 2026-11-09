@@ -34,7 +34,6 @@
 <main id="konten" class="main-content">
     <div class="page-heading"><div><h1>{{ $judul }}</h1><p>{{ $deskripsi }}</p></div>@if($role === 'admin')<button class="button primary" type="button" data-new="{{ $halaman }}">+ Tambah {{ $halaman === 'pengguna' ? 'pengguna' : 'siswa' }}</button>@endif</div>
     @if($errors->any())<div class="portal-form-error" role="alert">{{ $errors->first() }}</div>@endif
-    <div id="portal-feedback" role="status" aria-live="polite" hidden></div>
     @if($role === 'admin') @include('portal.admin')
     @elseif($role === 'siswa') @include('portal.siswa')
     @else @include('portal.laporan') @endif

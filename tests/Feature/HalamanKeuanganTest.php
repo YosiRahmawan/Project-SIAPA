@@ -164,4 +164,12 @@ class HalamanKeuanganTest extends TestCase
 
         $this->actingAs($user)->get('/ganti-password')->assertOk()->assertSee('Keluar dan ganti akun');
     }
+
+    public function test_pesan_sukses_dari_server_dikirim_sebagai_notifikasi_toast(): void
+    {
+        $this->withoutVite();
+
+        $this->actingAs($this->staf(Role::Keuangan))->withSession(['success' => 'Contoh berhasil.'])->get('/keuangan')
+            ->assertOk()->assertSee('data-flash="success"', false)->assertSee('Contoh berhasil.');
+    }
 }

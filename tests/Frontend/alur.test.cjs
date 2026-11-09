@@ -18,14 +18,15 @@ function finance(response, fail = false) {
     nodes.set('#payment-form',form); nodes.set('#payment-method',method);
     nodes.set('#payment-form input[name="tagihan"]:checked',selected);
     nodes.set('#proof-field',element({hidden:true})); nodes.set('#proof-field input',proof);
-    nodes.set('#student-result',element()); nodes.set('#feedback',element());
+    nodes.set('#student-result',element());
     nodes.set('#payment-amount',element()); nodes.set('#bill-options',element());
     nodes.set('#student-search',element({elements:{nis:{value:'2410123'}}}));
     for (const key of ['total','paid','amount','left']) nodes.set('#summary-'+key,element());
+    const toasts=[]; const toast=(message,options={})=>toasts.push({message,...options}); toast.clear=()=>{toasts.cleared=(toasts.cleared||0)+1};
     const context={document:{querySelector:s=>nodes.get(s)||null, querySelectorAll:()=>[],addEventListener(){},createElement:()=>element()},
-        FormData:class {get(){return 'qris'}}, fetch:async()=>({ok:!fail,json:async()=>response}),window:{}};
+        FormData:class {get(){return 'qris'}}, fetch:async()=>({ok:!fail,json:async()=>response}),window:{toast}};
     vm.createContext(context); vm.runInContext(fs.readFileSync('resources/js/keuangan.js','utf8'),context);
-    return {nodes,form,method,proof};
+    return {nodes,form,method,proof,toasts};
 }
 test('QRIS selesai: Tunai tidak lagi mewajibkan bukti',async()=>{
     const {nodes,form,method,proof}=finance({status:'menunggu',id:1});
@@ -64,23 +65,21 @@ test('dialog akun terkunci selama permintaan lalu menampilkan kredensial',async(
     assert.equal(dialog.closed,undefined);
 });
 
-test('pencarian baru menghapus ringkasan dan feedback lama meski hasil gagal',async()=>{
-    const {nodes}=finance({message:'Data siswa tidak ditemukan'},true);
+test('pencarian baru menghapus ringkasan dan notifikasi lama, lalu menampilkan galat',async()=>{
+    const {nodes,toasts}=finance({message:'Data siswa tidak ditemukan'},true);
     for(const key of ['total','paid','amount','left']) nodes.get('#summary-'+key).textContent='Rp590.000';
-    nodes.get('#feedback').textContent='Pembayaran lama berhasil';
     const search=nodes.get('#student-search');search.listeners.submit({preventDefault(){},currentTarget:search});
-    assert.equal(nodes.get('#feedback').hidden,true);
-    assert.equal(nodes.get('#feedback').textContent,'');
+    assert.equal(toasts.cleared,1);
     for(const key of ['total','paid','amount','left']) assert.equal(nodes.get('#summary-'+key).textContent,'Rp0');
     await settle();
     assert.equal(nodes.get('#payment-form').hidden,true);
-    assert.equal(nodes.get('#feedback').hidden,false);
-    assert.equal(nodes.get('#feedback').textContent,'Data siswa tidak ditemukan');
+    assert.deepEqual(toasts.map(t=>[t.message,t.type]),[['Data siswa tidak ditemukan','error']]);
 });
-test('setelah bayar: tagihan siswa dimuat ulang dan pesan sukses tetap tampil',async()=>{
-    const {nodes,form}=finance({status:'diterima',id:5,siswa:{nama:'Contoh',nis:'2410123',kelas:1,aktif:true},tagihan:[]});
+test('setelah bayar: tagihan siswa dimuat ulang dan notifikasi sukses memuat tautan kuitansi',async()=>{
+    const {nodes,form,toasts}=finance({status:'diterima',id:5,siswa:{nama:'Contoh',nis:'2410123',kelas:1,aktif:true},tagihan:[]});
     form.listeners.submit({preventDefault(){},currentTarget:form}); await settle(); await settle();
-    assert.match(nodes.get('#feedback').textContent,/Pembayaran diterima/);
-    assert.equal(nodes.get('#feedback').hidden,false);
+    const sukses=toasts.find(t=>t.type==='success');
+    assert.match(sukses.message,/Pembayaran diterima/);
+    assert.equal(sukses.link.href,'/keuangan/kuitansi/5');
     assert.notEqual(nodes.get('#student-result').textContent,'Pembayaran tersimpan. Cari siswa kembali untuk memuat tagihan terbaru.');
 });
