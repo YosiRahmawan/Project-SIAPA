@@ -64,4 +64,4 @@
     @endif
     @endif
     <footer class="page-footer">SIAPA · Sistem Informasi Administrasi Pembayaran Abu Bakar</footer>
-</main></div></body></html>
+</main></div><dialog id="ask-dialog" class="portal-dialog" aria-labelledby="ask-title"><form id="ask-form" novalidate><div class="section-heading"><h2 id="ask-title"></h2><button class="icon-button" type="button" data-ask-cancel aria-label="Tutup">×</button></div><p id="ask-message" class="caption" hidden></p><p id="ask-error" class="portal-form-error" role="alert" hidden></p><label id="ask-field" hidden><span id="ask-label"></span><textarea id="ask-text" rows="3" maxlength="500" hidden></textarea><input id="ask-number" type="number" min="1" step="1" inputmode="numeric" hidden><small id="ask-hint"></small></label><div class="form-footer"><button type="button" class="button" data-ask-cancel>Batal</button><button type="submit" class="button primary" id="ask-ok">Lanjut</button></div></form></dialog></body></html>

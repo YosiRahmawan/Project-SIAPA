@@ -3,18 +3,19 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ganti password · SIAPA</title>
+    <title>Ganti kata sandi · SIAPA</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-bg font-sans text-ink flex items-center justify-center p-4">
+<body class="min-h-screen bg-bg font-sans text-ink flex flex-col items-center justify-center gap-4 p-4">
     <form method="POST" action="/ganti-password" class="w-full max-w-sm bg-surface rounded-[--radius-hero] shadow-card p-8 space-y-5">
         @csrf
+        <img src="{{ asset('images/siapa-logo.png') }}" width="160" height="55" alt="SIAPA">
         <div>
-            <h1 class="text-xl font-bold text-navy-900">Ganti password</h1>
+            <h1 class="text-xl font-bold text-navy-900">Ganti kata sandi</h1>
             <p class="text-sm text-muted">Minimal 8 karakter, memuat huruf dan angka.</p>
         </div>
 
-        @foreach ([['password_lama', 'Password saat ini'], ['password', 'Password baru'], ['password_confirmation', 'Ulangi password baru']] as [$nama, $label])
+        @foreach ([['password_lama', 'Kata sandi saat ini'], ['password', 'Kata sandi baru'], ['password_confirmation', 'Ulangi kata sandi baru']] as [$nama, $label])
             <label class="block space-y-1.5">
                 <span class="text-sm font-medium text-ink-2">{{ $label }}</span>
                 <input name="{{ $nama }}" type="password" required
@@ -27,6 +28,10 @@
         @endif
 
         <button class="w-full h-11 rounded-full bg-primary text-white font-semibold hover:bg-navy-700 transition">Simpan</button>
+    </form>
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button class="text-sm text-muted underline hover:text-navy-900">Keluar dan ganti akun</button>
     </form>
 </body>
 </html>

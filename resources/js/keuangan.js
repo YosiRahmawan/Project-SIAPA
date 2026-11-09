@@ -31,17 +31,57 @@ async function submit(form, task) {
     try { await task(); } catch (error) { feedback(error.message || 'Koneksi bermasalah. Silakan coba kembali.', true); }
     finally { buttons.forEach(b => b.disabled = false); form.removeAttribute('aria-busy'); }
 }
+// Dialog tanya sebagai pengganti prompt() dan confirm(). Mengembalikan true, teks isian, atau null bila dibatalkan.
+function ask({ title, message = '', label = '', kind = null, value = '', hint = '', okText = 'Lanjut', danger = false }) {
+    return new Promise(resolve => {
+        const dialog = $('#ask-dialog'), form = $('#ask-form'), error = $('#ask-error');
+        const input = kind === 'number' ? $('#ask-number') : $('#ask-text');
+        $('#ask-title').textContent = title;
+        $('#ask-message').textContent = message;
+        $('#ask-message').hidden = !message;
+        $('#ask-field').hidden = !kind;
+        $('#ask-label').textContent = label;
+        $('#ask-hint').textContent = hint;
+        $('#ask-number').hidden = kind !== 'number';
+        $('#ask-text').hidden = kind !== 'text';
+        input.value = value;
+        error.hidden = true;
+        const ok = $('#ask-ok');
+        ok.textContent = okText;
+        ok.className = `button ${danger ? 'danger' : 'primary'}`;
+        const done = result => { dialog.close(); resolve(result); };
+        form.onsubmit = e => {
+            e.preventDefault();
+            if (!kind) return done(true);
+            const text = input.value.trim();
+            const valid = kind === 'number' ? /^\d+$/.test(text) && Number(text) > 0 && Number.isSafeInteger(Number(text)) : text.length > 0 && text.length <= 500;
+            if (!valid) { error.textContent = kind === 'number' ? 'Masukkan nominal rupiah bulat lebih dari nol, tanpa titik.' : 'Isi alasan 1 sampai 500 karakter.'; error.hidden = false; input.focus(); return; }
+            done(text);
+        };
+        dialog.querySelectorAll('[data-ask-cancel]').forEach(b => b.onclick = () => done(null));
+        dialog.oncancel = () => resolve(null);
+        dialog.showModal();
+        (kind ? input : ok).focus();
+    });
+}
+function setSidebar(collapsed) {
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    document.querySelectorAll('.sidebar-toggle').forEach(button => {
+        button.setAttribute('aria-expanded', String(!collapsed));
+        button.setAttribute('aria-label', collapsed ? 'Buka sidebar' : 'Ciutkan sidebar');
+        button.title = button.getAttribute('aria-label');
+    });
+}
 document.querySelectorAll('.sidebar-toggle').forEach(button => button.addEventListener('click', () => {
     if (matchMedia('(max-width:760px)').matches) {
         document.body.classList.remove('menu-open');
         $('.mobile-menu')?.setAttribute('aria-expanded', 'false');
     } else {
-        document.body.classList.toggle('sidebar-collapsed');
-        button.setAttribute('aria-expanded', String(!document.body.classList.contains('sidebar-collapsed')));
-        button.setAttribute('aria-label', document.body.classList.contains('sidebar-collapsed') ? 'Buka sidebar' : 'Ciutkan sidebar');
-        button.title = button.getAttribute('aria-label');
+        setSidebar(!document.body.classList.contains('sidebar-collapsed'));
+        try { localStorage.setItem('siapa-sidebar', document.body.classList.contains('sidebar-collapsed') ? 'ciut' : 'lebar'); } catch {}
     }
 }));
+try { if (localStorage.getItem('siapa-sidebar') === 'ciut' && !matchMedia('(max-width:760px)').matches) setSidebar(true); } catch {}
 $('.mobile-menu')?.addEventListener('click', e => { document.body.classList.toggle('menu-open'); e.currentTarget.setAttribute('aria-expanded', String(document.body.classList.contains('menu-open'))); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.body.classList.remove('menu-open'); $('.mobile-menu')?.setAttribute('aria-expanded', 'false'); } });
 $('.print-receipt')?.addEventListener('click', () => window.print());
@@ -139,36 +179,29 @@ $('#bill-form')?.addEventListener('submit', e => {
         feedback(type === 'jemputan' ? 'Tagihan jemputan berhasil dibuat.' : `${result.dibuat} tagihan baru berhasil dibuat. Tagihan yang sudah ada tetap dipertahankan.`);
     });
 });
-$('#verify-form')?.addEventListener('submit', e => {
+$('#verify-form')?.addEventListener('submit', async e => {
     e.preventDefault(); const form = e.currentTarget;
     const accept = e.submitter?.value === 'terima';
     if (!accept && !form.elements.alasan.value.trim()) { form.elements.alasan.setCustomValidity('Isi alasan penolakan.'); form.elements.alasan.reportValidity(); return; }
     form.elements.alasan.setCustomValidity('');
-    if (!window.confirm(accept ? 'Terima bukti ini dan masukkan ke penerimaan sekolah?' : 'Tolak bukti pembayaran ini?')) return;
+    if (!await ask(accept ? { title: 'Terima pembayaran?', message: 'Bukti ini akan dimasukkan ke penerimaan sekolah dan saldo tagihan diperbarui.', okText: 'Terima' } : { title: 'Tolak bukti pembayaran?', message: 'Alasan penolakan akan dicatat.', okText: 'Tolak bukti', danger: true })) return;
     submit(form, async () => {
         await api(`/keuangan/pembayaran/${form.dataset.id}/verifikasi`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ terima: accept, alasan: form.elements.alasan.value }) });
         window.location.assign('/keuangan/halaman/verifikasi');
     });
 });
 $('#verify-form textarea')?.addEventListener('input', e => e.target.setCustomValidity(''));
-document.querySelectorAll('.cancel-payment').forEach(button => button.addEventListener('click', () => {
-    const reason = window.prompt('Alasan pembatalan pembayaran (wajib, maksimal 500 karakter):');
+document.querySelectorAll('.cancel-payment').forEach(button => button.addEventListener('click', async () => {
+    const reason = await ask({ title: 'Batalkan pembayaran', message: 'Penerimaan dan saldo tagihan akan dihitung ulang. Data pembayaran lama tetap tersimpan.', label: 'Alasan pembatalan', kind: 'text', hint: 'Wajib diisi, maksimal 500 karakter.', okText: 'Batalkan pembayaran', danger: true });
     if (reason === null) return;
-    if (!reason.trim() || reason.length > 500) { feedback('Isi alasan pembatalan sepanjang 1–500 karakter.', true); return; }
-    if (!window.confirm('Batalkan pembayaran? Penerimaan dan saldo tagihan akan dihitung ulang.')) return;
     submit(button.closest('tr'), async () => { await api(`/keuangan/pembayaran/${button.dataset.id}/batal`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({alasan:reason})}); window.location.reload(); });
 }));
 
-document.querySelectorAll('.edit-transport').forEach(button => button.addEventListener('click', () => {
-    const value = window.prompt('Nominal jemputan baru (rupiah penuh, tanpa titik):', button.dataset.amount);
+document.querySelectorAll('.edit-transport').forEach(button => button.addEventListener('click', async () => {
+    const value = await ask({ title: 'Ubah nominal jemputan', label: 'Nominal baru (Rp)', kind: 'number', value: button.dataset.amount, hint: 'Rupiah penuh, tanpa titik. Hanya bisa diubah sebelum ada pembayaran.', okText: 'Simpan' });
     if (value === null) return;
-    const amount = Number(value);
-    if (!/^\d+$/.test(value.trim()) || !Number.isSafeInteger(amount) || amount < 1) {
-        feedback('Masukkan nominal rupiah bulat lebih dari nol.', true);
-        return;
-    }
     submit(button.closest('tr'), async () => {
-        await api(`/keuangan/tagihan/${button.dataset.id}/nominal`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({nominal:amount})});
+        await api(`/keuangan/tagihan/${button.dataset.id}/nominal`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({nominal:Number(value)})});
         window.location.reload();
     });
 }));

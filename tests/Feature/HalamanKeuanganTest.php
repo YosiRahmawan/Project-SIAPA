@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\JenisTagihan;
 use App\Enums\Role;
 use App\Models\Siswa;
 use App\Services\PembayaranService;
@@ -56,7 +57,7 @@ class HalamanKeuanganTest extends TestCase
         $this->get('/keuangan/halaman/verifikasi')->assertDontSee('Pembayaran QRIS berhasil diterima.');
         $this->postJson('/keuangan/pembayaran/'.$qris->id.'/batal', ['alasan' => 'Salah catat'])->assertOk();
         $this->get('/keuangan/halaman/laporan')->assertSee('Pembayaran berhasil dibatalkan.');
-        $jemputan = $this->tagihan(['jenis' => \App\Enums\JenisTagihan::Jemputan]);
+        $jemputan = $this->tagihan(['jenis' => JenisTagihan::Jemputan]);
         $this->patchJson('/keuangan/tagihan/'.$jemputan->id.'/nominal', ['nominal' => 200000])->assertOk();
         $this->get('/keuangan/halaman/tagihan')->assertSee('Nominal jemputan berhasil diperbarui.');
         $ditolak = $service->ajukanQris($tagihan, 1000, UploadedFile::fake()->image('tolak.png'), $petugas);
@@ -88,7 +89,7 @@ class HalamanKeuanganTest extends TestCase
     {
         $this->withoutVite();
         $petugas = $this->staf(Role::Keuangan);
-        $tagihan = $this->tagihan(['jenis' => \App\Enums\JenisTagihan::Jemputan, 'nominal' => 100000]);
+        $tagihan = $this->tagihan(['jenis' => JenisTagihan::Jemputan, 'nominal' => 100000]);
         $this->actingAs($petugas)->get('/keuangan/halaman/tagihan')->assertOk()->assertSee('Ubah nominal');
         $this->patchJson('/keuangan/tagihan/'.$tagihan->id.'/nominal', ['nominal' => 150000])->assertOk()->assertJsonPath('nominal', 150000);
         app(PembayaranService::class)->catatManual($tagihan->fresh(), 1000, $petugas);
@@ -143,5 +144,24 @@ class HalamanKeuanganTest extends TestCase
         $this->get('/keuangan/halaman/data-siswa?q=Aisyah')->assertOk()->assertSee('Aisyah Referensi')->assertDontSee('Bagas Referensi');
         $this->get('/keuangan/halaman/tagihan?kelas=2')->assertOk()->assertSee('Bagas Referensi')->assertDontSee('Aisyah Referensi');
         $this->getJson('/keuangan/halaman/laporan?periode=invalid')->assertUnprocessable();
+    }
+
+    public function test_halaman_keuangan_memakai_dialog_bukan_prompt_bawaan_browser(): void
+    {
+        $this->withoutVite();
+
+        $this->actingAs($this->staf(Role::Keuangan))->get('/keuangan/halaman/penerimaan')
+            ->assertOk()->assertSee('id="ask-dialog"', false);
+        $this->assertStringNotContainsString('window.prompt', file_get_contents(base_path('resources/js/keuangan.js')));
+        $this->assertStringNotContainsString('window.confirm', file_get_contents(base_path('resources/js/keuangan.js')));
+    }
+
+    public function test_halaman_ganti_password_punya_tombol_keluar(): void
+    {
+        $this->withoutVite();
+        $user = $this->staf(Role::Siswa);
+        $user->forceFill(['harus_ganti_password' => true])->save();
+
+        $this->actingAs($user)->get('/ganti-password')->assertOk()->assertSee('Keluar dan ganti akun');
     }
 }
