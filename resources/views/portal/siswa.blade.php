@@ -1,5 +1,6 @@
 @if($halaman !== 'riwayat')
 @php $nominal = $data->sum('nominal'); $dibayar = $data->sum('dibayar'); @endphp
+@if($halaman === 'tagihan' && ($jumlahPeringatan ?? 0) > 0)<a class="notice warn portal-notice" href="/siswa/peringatan"><strong>{{ $jumlahPeringatan }} tagihan mendekati atau melewati jatuh tempo.</strong> Lihat pengingat tagihan →</a>@endif
 <div class="summary-cards"><section class="panel dark-stat"><p>Sisa tagihan</p><h2>{{ $uang(max(0,$nominal-$dibayar)) }}</h2><small>{{ $halaman === 'peringatan' ? 'Untuk tagihan dalam pengingat' : 'Dikurangi pembayaran diterima' }}</small></section><section class="panel"><p>Sudah dibayar</p><h2>{{ $uang($dibayar) }}</h2><small>Pembayaran yang sudah diterima sekolah</small></section><section class="panel"><p>Jumlah tagihan</p><h2>{{ $data->count() }}</h2><small>{{ $halaman === 'peringatan' ? 'Tagihan perlu diperhatikan' : 'Seluruh tagihan milik Anda' }}</small></section></div>
 @if($halaman === 'tagihan')<p class="notice portal-notice">Untuk pembayaran dan konfirmasi bukti QRIS, hubungi petugas keuangan sekolah. Status diperbarui setelah pembayaran diverifikasi.</p>@endif
 @endif

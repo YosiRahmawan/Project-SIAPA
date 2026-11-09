@@ -59,19 +59,19 @@ function updateSummary() {
 function clearPaymentSummary() {
     ['total','paid','amount','left'].forEach(key => $(`#summary-${key}`).textContent = money(0));
 }
-$('#student-search')?.addEventListener('submit', e => {
-    e.preventDefault();
-    const form = e.currentTarget;
+function loadStudent(form, keepFeedback = false) {
     bills = [];
     clearPaymentSummary();
-    $('#feedback').hidden = true;
-    $('#feedback').textContent = '';
-    $('#feedback').classList.toggle('error', false);
+    if (!keepFeedback) {
+        $('#feedback').hidden = true;
+        $('#feedback').textContent = '';
+        $('#feedback').classList.toggle('error', false);
+    }
     $('#payment-form').reset();
     syncPaymentMethod();
     $('#payment-form').hidden = true;
     $('#student-result').textContent = 'Mencari siswa…';
-    submit(form, async () => {
+    return submit(form, async () => {
         let data;
         try { data = await api(`/keuangan/siswa/${encodeURIComponent(form.elements.nis.value.trim())}`); }
         catch (error) { $('#student-result').textContent = 'Pencarian belum berhasil. Periksa NIS dan coba kembali.'; throw error; }
@@ -101,7 +101,8 @@ $('#student-search')?.addEventListener('submit', e => {
         $('#payment-form').hidden = false;
         updateSummary();
     });
-});
+}
+$('#student-search')?.addEventListener('submit', e => { e.preventDefault(); loadStudent(e.currentTarget); });
 $('#payment-amount')?.addEventListener('input', updateSummary);
 function syncPaymentMethod() {
     const qris = $('#payment-method').value === 'qris';
@@ -117,11 +118,7 @@ $('#payment-form')?.addEventListener('submit', e => {
         const data = new FormData(form);
         if (data.get('metode') === 'manual') data.delete('bukti');
         const payment = await api(`/keuangan/tagihan/${bill.value}/pembayaran`, { method: 'POST', body: data });
-        form.hidden = true;
-        $('#student-result').textContent = 'Pembayaran tersimpan. Cari siswa kembali untuk memuat tagihan terbaru.';
-        clearPaymentSummary();
-        form.reset();
-        syncPaymentMethod();
+        await loadStudent($('#student-search'), true);
         feedback(payment.status === 'diterima' ? 'Pembayaran diterima. Saldo tagihan sudah diperbarui.' : 'Pengajuan QRIS tersimpan dan menunggu verifikasi.', false, payment.status === 'diterima' ? payment.id : null);
     });
 });

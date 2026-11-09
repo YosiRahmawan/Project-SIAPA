@@ -11,14 +11,17 @@ use Illuminate\Http\Request;
 /** Semua query memakai scope milik(): siswa hanya bisa membaca baris dengan NIS miliknya. */
 class PortalController extends Controller
 {
-    public function tagihan(Request $request)
+    public function tagihan(Request $request, AlertService $alert)
     {
         $hari = today();
 
         $data = Tagihan::milik($request->user())->orderBy('jatuh_tempo')->get()
             ->map(fn (Tagihan $t) => $t->ringkas($hari));
 
-        return $request->expectsJson() ? $data : view('portal.index', ['halaman' => 'tagihan', 'data' => $data]);
+        return $request->expectsJson() ? $data : view('portal.index', [
+            'halaman' => 'tagihan', 'data' => $data,
+            'jumlahPeringatan' => $alert->peringatan($hari)->milik($request->user())->count(),
+        ]);
     }
 
     public function riwayat(Request $request)

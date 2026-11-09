@@ -41,3 +41,7 @@
 .sidebar .logout{background:#ffffff40}
 .sidebar-content{scrollbar-color:#499da8 transparent}
 .sidebar .sidebar-toggle{color:#06677b;border-color:#c4e8eb}
+.notice.warn{display:block;background:#fcede9;color:#af443d;text-decoration:none}
+.notice.warn strong{display:block;margin-bottom:2px}
+.portal-notice.warn{margin-bottom:16px}
+@media(max-width:560px){.summary-cards{grid-template-columns:1fr 1fr;gap:12px}.summary-cards .dark-stat{grid-column:1/-1}.summary-cards h2{font-size:20px}}

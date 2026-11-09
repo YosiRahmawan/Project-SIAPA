@@ -1,0 +1,1 @@
+@include('errors.pesan', ['kode' => 'SESI BERAKHIR', 'judul' => 'Sesi Anda sudah berakhir', 'teks' => 'Demi keamanan, sesi ditutup setelah beberapa waktu tidak aktif. Muat ulang halaman atau masuk kembali, lalu ulangi langkah terakhir.'])

@@ -77,3 +77,10 @@ test('pencarian baru menghapus ringkasan dan feedback lama meski hasil gagal',as
     assert.equal(nodes.get('#feedback').hidden,false);
     assert.equal(nodes.get('#feedback').textContent,'Data siswa tidak ditemukan');
 });
+test('setelah bayar: tagihan siswa dimuat ulang dan pesan sukses tetap tampil',async()=>{
+    const {nodes,form}=finance({status:'diterima',id:5,siswa:{nama:'Contoh',nis:'2410123',kelas:1,aktif:true},tagihan:[]});
+    form.listeners.submit({preventDefault(){},currentTarget:form}); await settle(); await settle();
+    assert.match(nodes.get('#feedback').textContent,/Pembayaran diterima/);
+    assert.equal(nodes.get('#feedback').hidden,false);
+    assert.notEqual(nodes.get('#student-result').textContent,'Pembayaran tersimpan. Cari siswa kembali untuk memuat tagihan terbaru.');
+});

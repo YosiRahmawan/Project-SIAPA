@@ -1,0 +1,56 @@
+<?php
+
+return [
+    'accepted' => ':attribute harus disetujui.',
+    'array' => ':attribute harus berupa daftar.',
+    'between' => [
+        'numeric' => ':attribute harus di antara :min dan :max.',
+        'string' => ':attribute harus :min sampai :max karakter.',
+    ],
+    'boolean' => ':attribute harus bernilai ya atau tidak.',
+    'confirmed' => 'Konfirmasi :attribute tidak cocok.',
+    'current_password' => 'Kata sandi lama tidak sesuai.',
+    'date' => ':attribute bukan tanggal yang valid.',
+    'date_format' => ':attribute harus berformat :format.',
+    'enum' => ':attribute yang dipilih tidak valid.',
+    'exists' => ':attribute tidak ditemukan.',
+    'file' => ':attribute harus berupa berkas.',
+    'in' => ':attribute yang dipilih tidak valid.',
+    'integer' => ':attribute harus berupa angka bulat.',
+    'max' => [
+        'numeric' => ':attribute tidak boleh lebih dari :max.',
+        'file' => ':attribute tidak boleh lebih dari :max KB.',
+        'string' => ':attribute tidak boleh lebih dari :max karakter.',
+    ],
+    'mimes' => ':attribute harus berupa berkas: :values.',
+    'min' => [
+        'numeric' => ':attribute minimal :min.',
+        'file' => ':attribute minimal :min KB.',
+        'string' => ':attribute minimal :min karakter.',
+    ],
+    'numeric' => ':attribute harus berupa angka.',
+    'password' => [
+        'letters' => ':attribute harus memuat minimal satu huruf.',
+        'mixed' => ':attribute harus memuat huruf besar dan huruf kecil.',
+        'numbers' => ':attribute harus memuat minimal satu angka.',
+        'symbols' => ':attribute harus memuat minimal satu simbol.',
+        'uncompromised' => ':attribute pernah bocor di internet. Pilih yang lain.',
+    ],
+    'regex' => 'Format :attribute tidak valid.',
+    'required' => ':attribute wajib diisi.',
+    'required_if' => ':attribute wajib diisi.',
+    'required_with' => ':attribute wajib diisi.',
+    'same' => ':attribute dan :other harus sama.',
+    'size' => [
+        'string' => ':attribute harus :size karakter.',
+    ],
+    'string' => ':attribute harus berupa teks.',
+    'unique' => ':attribute sudah dipakai.',
+    'uploaded' => ':attribute gagal diunggah.',
+    'attributes' => [
+        'nis' => 'NIS', 'nama' => 'Nama', 'kelas' => 'Kelas', 'nominal' => 'Nominal', 'jumlah' => 'Jumlah',
+        'bukti' => 'Bukti', 'alasan' => 'Alasan', 'username' => 'Username', 'password' => 'Kata sandi',
+        'password_lama' => 'Kata sandi lama', 'periode' => 'Periode', 'tahun' => 'Tahun', 'role' => 'Peran',
+        'metode' => 'Metode', 'jenis' => 'Jenis tagihan', 'terima' => 'Keputusan',
+    ],
+];

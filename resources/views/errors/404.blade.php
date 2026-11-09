@@ -1,0 +1,1 @@
+@include('errors.pesan', ['kode' => 'HALAMAN TIDAK DITEMUKAN', 'judul' => 'Halaman tidak ditemukan', 'teks' => 'Alamat yang Anda buka tidak ada atau datanya sudah tidak tersedia. Periksa kembali alamatnya.'])

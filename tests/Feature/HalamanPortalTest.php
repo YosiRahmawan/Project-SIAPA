@@ -87,4 +87,23 @@ class HalamanPortalTest extends TestCase
         $this->get('/yayasan/pembatalan')->assertOk()->assertSee('Salah catat pengujian');
         $this->get('/laporan/rekap?periode=invalid')->assertSessionHasErrors('periode');
     }
+
+    public function test_tagihan_siswa_menampilkan_banner_bila_ada_peringatan(): void
+    {
+        $this->withoutVite();
+        [$user, $siswa] = $this->akunSiswa();
+        $this->actingAs($user)->get('/siswa/tagihan')->assertOk()->assertDontSee('mendekati atau melewati jatuh tempo');
+        $this->tagihan(['nis' => $siswa->nis, 'jatuh_tempo' => today()->subDay()]);
+
+        $this->get('/siswa/tagihan')->assertOk()->assertSee('1 tagihan mendekati atau melewati jatuh tempo.');
+    }
+
+    public function test_pesan_validasi_dan_halaman_error_berbahasa_indonesia(): void
+    {
+        $this->withoutVite();
+        $this->actingAs($this->staf(Role::Admin))->postJson('/admin/siswa', ['nis' => '', 'nama' => 'A', 'kelas' => 1])
+            ->assertUnprocessable()->assertJsonPath('errors.nis.0', 'NIS wajib diisi.');
+        $this->actingAs($this->staf(Role::Yayasan))->get('/laporan/siswa/tidak-ada')
+            ->assertNotFound()->assertSee('Halaman tidak ditemukan');
+    }
 }
